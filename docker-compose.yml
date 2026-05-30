@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-timp4lab}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data_dev:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_access_secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
+      CLAIM_ADMIN_SECRET: ${CLAIM_ADMIN_SECRET:-claim_secret}
+      REFRESH_COOKIE_NAME: refreshToken
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL: 7d
+    depends_on:
+      - db
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-3001}/api
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+
+volumes:
+  pg_data_dev:

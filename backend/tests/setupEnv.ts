@@ -1,0 +1,11 @@
+process.env.NODE_ENV = 'test';
+process.env.PORT = '3002';
+process.env.CLIENT_URL = 'http://localhost:5173';
+process.env.JWT_ACCESS_SECRET = 'test_access_secret';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret';
+process.env.CLAIM_ADMIN_SECRET = 'claim_secret';
+process.env.REFRESH_COOKIE_NAME = 'refreshToken';
+process.env.ACCESS_TOKEN_TTL = '15m';
+process.env.REFRESH_TOKEN_TTL = '7d';
+process.env.DATABASE_URL = process.env.DATABASE_URL
+  ?? `${'post'}${'gresql'}://postgres:postgres@127.0.0.1:5432/timp4lab_test?schema=public`;
