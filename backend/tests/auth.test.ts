@@ -37,6 +37,7 @@ describe('auth flow', () => {
 
     const refresh = await request(app)
       .post('/api/auth/refresh')
+      .set('Origin', 'http://localhost:5173')
       .set('Cookie', login.headers['set-cookie']);
 
     expect(refresh.status).toBe(200);

@@ -1,6 +1,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
@@ -19,6 +20,30 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(log5xx);
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api', apiLimiter);
+
+app.use((req, res, next) => {
+  const csrfProtectedMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  const hasRefreshCookie = Boolean(req.cookies?.[env.refreshCookieName]);
+  if (!hasRefreshCookie || !csrfProtectedMethods.includes(req.method)) {
+    return next();
+  }
+
+  const origin = req.get('origin') ?? req.get('referer');
+  if (!origin || !origin.startsWith(env.clientUrl)) {
+    return res.status(403).json({ detail: 'CSRF protection: invalid origin' });
+  }
+
+  return next();
+});
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
