@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AuditStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  MITIGATED
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  username         String    @unique
+  email            String    @unique
+  phone            String?   @unique
+  passwordHash     String
+  role             Role      @default(USER)
+  refreshTokenHash String?
+  departmentId     Int?
+  department       Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  incidents        Incident[] @relation("IncidentReporter")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Department {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  users       User[]
+  assets      Asset[]
+  incidents   Incident[]
+  audits      Audit[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Asset {
+  id              Int             @id @default(autoincrement())
+  name            String
+  room            String
+  departmentId    Int
+  department      Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  incidents       Incident[]
+  vulnerabilities Vulnerability[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Incident {
+  id           Int              @id @default(autoincrement())
+  title        String
+  description  String
+  severity     IncidentSeverity
+  departmentId Int
+  department   Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  assetId      Int?
+  asset        Asset?           @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  reporterId   Int?
+  reporter     User?            @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model Audit {
+  id           Int         @id @default(autoincrement())
+  title        String
+  status       AuditStatus
+  date         DateTime
+  departmentId Int
+  department   Department  @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Vulnerability {
+  id          Int                 @id @default(autoincrement())
+  title       String
+  cvss        Float
+  status      VulnerabilityStatus @default(OPEN)
+  assetId     Int
+  asset       Asset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  mitigations Mitigation[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Mitigation {
+  id              Int            @id @default(autoincrement())
+  title           String
+  description     String
+  dueDate         DateTime?
+  vulnerabilityId Int
+  vulnerability   Vulnerability  @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
