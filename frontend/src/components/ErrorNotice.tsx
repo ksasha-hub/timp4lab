@@ -1,10 +1,18 @@
+import { Alert, Button, Stack } from '@mui/material';
 import { getApiError } from '../utils/getApiError';
 
 export function ErrorNotice({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   return (
-    <div style={{ border: '1px solid #d33', padding: 12, marginBottom: 12, borderRadius: 8 }}>
-      <div>{getApiError(error)}</div>
-      {onRetry ? <button onClick={onRetry}>Retry</button> : null}
-    </div>
+    <Alert
+      severity='error'
+      action={onRetry ? (
+        <Button color='inherit' size='small' onClick={onRetry}>
+          Retry
+        </Button>
+      ) : undefined}
+      sx={{ mb: 2 }}
+    >
+      <Stack>{getApiError(error)}</Stack>
+    </Alert>
   );
 }

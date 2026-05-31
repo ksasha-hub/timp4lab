@@ -14,6 +14,8 @@ import { openApiSpec } from './middleware/openapi';
 
 export const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors({ origin: env.clientUrl, credentials: true }));
 app.use(cookieParser());
@@ -46,6 +48,10 @@ app.use((req, res, next) => {
 });
 
 app.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
