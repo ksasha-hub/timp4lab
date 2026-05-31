@@ -7,6 +7,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import ShieldIcon from '@mui/icons-material/Shield';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import {
   Avatar, Box, Chip, Divider, Drawer, IconButton,
   List, ListItemButton, ListItemIcon, ListItemText,
@@ -20,6 +21,7 @@ import { useAuth } from '../auth/AuthContext';
 const drawerWidth = 240;
 
 const entityIcons: Record<string, React.ReactNode> = {
+  dashboard: <DashboardIcon fontSize="small" />,
   users: <PeopleIcon fontSize="small" />,
   departments: <BusinessIcon fontSize="small" />,
   assets: <DevicesIcon fontSize="small" />,
@@ -46,12 +48,24 @@ export function AppShell({ activeEntity, children }: {
             <SecurityIcon sx={{ color: '#2563eb', fontSize: 22 }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>SecureLab</Typography>
           </Stack>
-          <Typography variant="caption" color="text.secondary">Internet Security </Typography>
         </Box>
 
         <Divider sx={{ borderColor: '#e2e8f0' }} />
 
         <List sx={{ px: 0.5, pt: 1, flexGrow: 1 }}>
+          <ListItemButton
+            component={RouterLink}
+            to="/dashboard"
+            selected={activeEntity === 'dashboard'}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: activeEntity === 'dashboard' ? '#2563eb' : '#64748b' }}>
+              <DashboardIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Dashboard" slotProps={{ primary: { style: { fontSize: '0.875rem' } } }} />
+          </ListItemButton>
+
+          <Divider sx={{ my: 1, borderColor: '#e2e8f0' }} />
+
           {navItems.map((entry) => (
             <ListItemButton
               key={entry.key}
