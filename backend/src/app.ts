@@ -13,6 +13,7 @@ import { log5xx } from './middleware/log5xx';
 import { openApiSpec } from './middleware/openapi';
 
 export const app = express();
+app.set('trust proxy', 1);
 
 app.set('trust proxy', 1);
 

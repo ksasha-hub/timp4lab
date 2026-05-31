@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     environment:
+      CLIENT_URL: ${CLIENT_URL:-https://109.120.152.26}
       POSTGRES_DB: ${POSTGRES_DB:-timp4lab}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -13,7 +14,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      CLIENT_URL: ${CLIENT_URL:-http://localhost}
+      CLIENT_URL: ${CLIENT_URL:-http://109.120.152.26}
       DATABASE_URL: ${DATABASE_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
