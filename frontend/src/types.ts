@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'USER';
+export type Role = 'ADMIN' | 'SUPERVISOR' | 'USER';
 
 export type EntityConfig = {
   key: string;

@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography
+} from '@mui/material';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorNotice } from '../components/ErrorNotice';
 
@@ -31,24 +43,74 @@ export function LoginPage() {
   };
 
   return (
-    <main style={{ maxWidth: 420, margin: '2rem auto' }}>
-      <h1>Internet Security Lab 4</h1>
-      <button onClick={() => setMode((m) => (m === 'login' ? 'register' : 'login'))}>
-        Switch to {mode === 'login' ? 'register' : 'login'}
-      </button>
-      {error ? <ErrorNotice error={error} /> : null}
-      <form onSubmit={submit} style={{ display: 'grid', gap: 8 }}>
-        {mode === 'login' ? (
-          <input placeholder='Username or email' value={form.login} onChange={(e) => setForm((s) => ({ ...s, login: e.target.value }))} required />
-        ) : (
-          <>
-            <input placeholder='Username' value={form.username} onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))} required />
-            <input placeholder='Email' type='email' value={form.email} onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))} required />
-          </>
-        )}
-        <input placeholder='Password' type='password' value={form.password} onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))} required />
-        <button type='submit'>{mode === 'login' ? 'Login' : 'Register'}</button>
-      </form>
-    </main>
+    <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 2 }}>
+      <Card sx={{ width: '100%', maxWidth: 460 }}>
+        <CardHeader title='Internet Security Lab 4' subheader='Sign in or create an account' />
+        <CardContent>
+          <Stack spacing={2}>
+            <ToggleButtonGroup
+              value={mode}
+              exclusive
+              onChange={(_, value) => {
+                if (value) setMode(value);
+              }}
+              fullWidth
+              size='small'
+            >
+              <ToggleButton value='login'>Login</ToggleButton>
+              <ToggleButton value='register'>Register</ToggleButton>
+            </ToggleButtonGroup>
+
+            {error ? <ErrorNotice error={error} /> : null}
+
+            <Box component='form' onSubmit={submit}>
+              <Stack spacing={2}>
+                {mode === 'login' ? (
+                  <TextField
+                    label='Username or email'
+                    value={form.login}
+                    onChange={(e) => setForm((s) => ({ ...s, login: e.target.value }))}
+                    required
+                    fullWidth
+                  />
+                ) : (
+                  <>
+                    <TextField
+                      label='Username'
+                      value={form.username}
+                      onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
+                      required
+                      fullWidth
+                    />
+                    <TextField
+                      label='Email'
+                      type='email'
+                      value={form.email}
+                      onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                      required
+                      fullWidth
+                    />
+                  </>
+                )}
+                <TextField
+                  label='Password'
+                  type='password'
+                  value={form.password}
+                  onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                  required
+                  fullWidth
+                />
+                <Button type='submit' variant='contained' fullWidth>
+                  {mode === 'login' ? 'Login' : 'Register'}
+                </Button>
+              </Stack>
+            </Box>
+            <Typography variant='caption' color='text.secondary'>
+              Demo credentials: admin / Admin123!
+            </Typography>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }

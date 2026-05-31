@@ -2,9 +2,13 @@
 
 Production-ready full-stack app:
 - **Backend**: Node.js + Express + TypeScript + Prisma + PostgreSQL
-- **Frontend**: React + Vite + TypeScript
+- **Frontend**: React + Vite + TypeScript + MUI (light theme)
 - **Auth**: JWT access (15m) + refresh (7d, httpOnly cookie)
 - **Infra**: Docker, docker-compose (dev/prod), Nginx reverse proxy
+
+## Demo credentials
+- `admin / Admin123!`
+- all seeded users use `Admin123!`
 
 ## Entities
 1. users
@@ -17,21 +21,19 @@ Production-ready full-stack app:
 
 Frontend uses `frontend/src/entityConfig.ts` and reusable generic pages/components for list/details/create/edit/delete.
 
-## Security features
+## Security/features
 - bcrypt password hashing
 - server-side password validation (8–20, upper+lower latin, digit, special)
 - login/register rate limit (429)
 - uniqueness checks on register (`username`, `email`, optional `phone`) with `409`
 - refresh token in `httpOnly` cookie with configurable `Secure` + `SameSite`
 - automatic token refresh via Axios interceptor
-- centralized error handling via `getApiError` + `ErrorNotice`
-- `/api/auth/claim-admin-x9k4m2` bootstrap route (works only when no admin exists and secret is correct)
+- centralized error handling (`422` validation errors now returned in consistent schema)
+- `POST /api/auth/claim-admin?secret=...` bootstrap route (disabled with `404` once any admin exists)
 - admin cannot delete self (backend + UI)
 - department delete blocked with `400` when related assets/users/incidents exist
-- middleware logs all `5xx` responses
-
-## Access token storage note
-Frontend stores access token in `localStorage` (simplifies SPA refresh). Risk: token can be stolen via XSS. Mitigate with strict input handling/CSP and prefer memory-only storage in stricter environments.
+- trust proxy enabled for nginx deployments
+- health checks: `/health` and `/api/health`
 
 ## Local run (without Docker)
 ### Backend
@@ -42,7 +44,7 @@ cp .env.example .env
 npm ci
 npx prisma migrate dev --name init
 npm run prisma:generate
-npm run seed
+npm run prisma:seed
 npm run dev
 ```
 
@@ -56,7 +58,7 @@ npm run dev
 ## Docker (dev)
 ```bash
 cp .env.example .env
-# set DATABASE_URL in .env using your PostgreSQL connection string (host `db` in docker network)
+# set DATABASE_URL in .env using host `db`
 docker compose up --build
 ```
 Frontend: `http://localhost:5173`, Backend: `http://localhost:3001`, Swagger: `http://localhost:3001/api/docs`
@@ -67,14 +69,20 @@ cp .env.example .env
 # set production secrets + DATABASE_URL (host=db)
 docker compose -f docker-compose.prod.yml up --build -d
 ```
-Nginx serves SPA on port `80` and proxies `/api` to backend. Backend and DB are internal-only.
+Nginx serves SPA on port `80` and proxies `/api` to backend.
 
 ## Seed data
+Deterministic seed includes 5–7 records per entity with linked relations.
+
 ```bash
 cd backend
-npm run seed
+npm run prisma:seed
 ```
-Creates demo admin/user-linked security records.
+
+In docker:
+```bash
+docker compose -f docker-compose.prod.yml exec backend npm run prisma:seed
+```
 
 ## Tests
 ### Backend
@@ -82,7 +90,7 @@ Creates demo admin/user-linked security records.
 cd backend
 npm test
 ```
-Includes Jest + Supertest tests for auth flow and department CRUD.
+Includes Jest + Supertest tests for auth and CRUD happy paths.
 
 ### Frontend
 ```bash

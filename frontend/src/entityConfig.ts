@@ -9,7 +9,7 @@ export const entityConfig: Record<string, EntityConfig> = {
       { name: 'username', label: 'Username', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'text', required: true },
       { name: 'password', label: 'Password', type: 'text' },
-      { name: 'role', label: 'Role', type: 'select', options: ['ADMIN', 'USER'], required: true }
+      { name: 'role', label: 'Role', type: 'select', options: ['ADMIN', 'SUPERVISOR', 'USER'], required: true }
     ]
   },
   departments: {

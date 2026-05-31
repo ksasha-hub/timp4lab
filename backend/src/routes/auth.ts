@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 import { CookieOptions, Response, Router } from 'express';
+import type { Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { env } from '../config/env';
@@ -172,17 +173,30 @@ router.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
-router.post('/claim-admin-x9k4m2', async (req, res, next) => {
+const claimAdminBodySchema = z.object({
+  username: z.string().min(3),
+  email: z.email(),
+  password: z.string().min(8).max(20),
+  claimKey: z.string().optional()
+});
+
+const resolveClaimSecret = (req: Request, bodyClaimKey?: string) => {
+  const querySecret = typeof req.query.secret === 'string' ? req.query.secret : undefined;
+  return querySecret ?? bodyClaimKey;
+};
+
+const claimAdminHandler = async (req: Request, res: Response, next: (err?: unknown) => void) => {
   try {
-    const body = z.object({ claimKey: z.string(), username: z.string().min(3), email: z.email(), password: z.string().min(8).max(20) }).parse(req.body);
-
-    if (body.claimKey !== env.claimAdminSecret) {
-      throw new ApiError(403, 'Invalid claim key');
-    }
-
     const adminExists = await prisma.user.count({ where: { role: Role.ADMIN } });
     if (adminExists > 0) {
-      throw new ApiError(409, 'Admin already exists');
+      throw new ApiError(404, 'Not found');
+    }
+
+    const body = claimAdminBodySchema.parse(req.body);
+    const secret = resolveClaimSecret(req, body.claimKey);
+
+    if (!secret || secret !== env.claimAdminSecret) {
+      throw new ApiError(403, 'Invalid claim key');
     }
 
     if (!isStrongPassword(body.password)) {
@@ -204,6 +218,9 @@ router.post('/claim-admin-x9k4m2', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/claim-admin', claimAdminHandler);
+router.post('/claim-admin-x9k4m2', claimAdminHandler);
 
 export default router;

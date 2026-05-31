@@ -43,4 +43,24 @@ describe('auth flow', () => {
     expect(refresh.status).toBe(200);
     expect(refresh.body.accessToken).toBeDefined();
   });
+
+  it('returns 422 on invalid payload and exposes zod errors', async () => {
+    const response = await request(app).post('/api/auth/register').send({
+      username: 'ab',
+      email: 'not-email',
+      password: '123'
+    });
+
+    expect(response.status).toBe(422);
+    expect(response.body.detail).toBe('Validation error');
+    expect(Array.isArray(response.body.errors)).toBe(true);
+  });
+
+  it('claim-admin route is disabled after first admin exists', async () => {
+    const claim = await request(app)
+      .post('/api/auth/claim-admin?secret=claim_secret')
+      .send({ username: 'anotheradmin', email: 'anotheradmin@example.com', password: 'Strong#123' });
+
+    expect(claim.status).toBe(404);
+  });
 });

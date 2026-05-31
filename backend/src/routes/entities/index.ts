@@ -106,7 +106,7 @@ router.post('/users', requireAuth, requireRole([Role.ADMIN]), async (req, res, n
       username: z.string().min(3),
       email: z.email(),
       password: z.string().min(8).max(20),
-      role: z.enum(['ADMIN', 'USER']),
+      role: z.enum(['ADMIN', 'SUPERVISOR', 'USER']),
       departmentId: z.number().int().positive().nullable().optional()
     }).parse(req.body);
     if (!isStrongPassword(body.password)) {
@@ -131,7 +131,7 @@ router.post('/users', requireAuth, requireRole([Role.ADMIN]), async (req, res, n
 router.put('/users/:id', requireAuth, requireRole([Role.ADMIN]), async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const body = z.object({ role: z.enum(['ADMIN', 'USER']).optional(), departmentId: z.number().int().positive().nullable().optional() }).parse(req.body);
+    const body = z.object({ role: z.enum(['ADMIN', 'SUPERVISOR', 'USER']).optional(), departmentId: z.number().int().positive().nullable().optional() }).parse(req.body);
     const user = await prisma.user.update({ where: { id }, data: body, select: { id: true, username: true, email: true, role: true, departmentId: true } });
     res.json(user);
   } catch (err) {
