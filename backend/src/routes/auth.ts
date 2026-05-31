@@ -29,7 +29,7 @@ const authSchema = z.object({
 });
 
 const loginSchema = z.object({
-  login: z.string().min(3),
+  username: z.string().min(3),
   password: z.string().min(8)
 });
 
@@ -108,7 +108,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     const user = await prisma.user.findFirst({
       where: {
-        OR: [{ username: parsed.login }, { email: parsed.login }]
+        OR: [{ username: parsed.username }, { email: parsed.username }]
       }
     });
     if (!user) throw new ApiError(401, 'Invalid credentials');
