@@ -26,6 +26,7 @@ Frontend uses `frontend/src/entityConfig.ts` and reusable generic pages/componen
 - server-side password validation (8–20, upper+lower latin, digit, special)
 - login/register rate limit (429)
 - uniqueness checks on register (`username`, `email`, optional `phone`) with `409`
+- public register always creates `USER` role (ignores submitted role) and blocks reserved usernames (e.g. `admin`)
 - refresh token in `httpOnly` cookie with configurable `Secure` + `SameSite`
 - automatic token refresh via Axios interceptor
 - centralized error handling (`422` validation errors now returned in consistent schema)

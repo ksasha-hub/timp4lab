@@ -11,8 +11,8 @@ import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TextField, Tooltip, Typography
 } from '@mui/material';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { entityConfig } from '../entityConfig';
@@ -50,41 +50,112 @@ function CellValue({ col, value }: { col: string; value: unknown }) {
 
 export function EntityListPage() {
   const { user } = useAuth();
-  const { entity = 'departments' } = useParams();
+  const { entity = 'departments', id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const config = entityConfig[entity] ?? entityConfig.departments;
   const hasValidEntity = Boolean(entityConfig[entity]);
-  const [search, setSearch] = useState('');
+  const querySearch = String(searchParams.get('search') ?? '').trim();
+  const [search, setSearch] = useState(querySearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(querySearch);
   const [page, setPage] = useState(1);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editItem, setEditItem] = useState<Record<string, unknown> | null>(null);
-  const [deleteItem, setDeleteItem] = useState<Record<string, unknown> | null>(null);
+  const [routeItem, setRouteItem] = useState<Record<string, unknown> | null>(null);
+  const [routeItemLoading, setRouteItemLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [snackbar, setSnackbar] = useState({ open:false, text:'', severity:'success' as 'success'|'error' });
 
   const { items, total, limit, loading, error: listError, reload } = usePaginatedEntity<Record<string, unknown>>(
-    config.endpoint, page, 10, search
+    config.endpoint, page, 10, debouncedSearch
   );
 
-  if (!user) return <Navigate to='/login' replace state={{ from: `/entities/${entity}` }} />;
-  if (!hasValidEntity) return <Navigate to='/entities/departments' replace />;
+  const mode = useMemo(() => {
+    if (location.pathname.endsWith('/new')) return 'new';
+    if (location.pathname.endsWith('/edit')) return 'edit';
+    if (location.pathname.endsWith('/delete')) return 'delete';
+    return 'list';
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    const current = String(searchParams.get('search') ?? '').trim();
+    if (current === debouncedSearch) return;
+    const next = new URLSearchParams(searchParams);
+    if (debouncedSearch) next.set('search', debouncedSearch);
+    else next.delete('search');
+    setSearchParams(next, { replace: true });
+  }, [debouncedSearch, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (querySearch === search) return;
+    setSearch(querySearch);
+    setDebouncedSearch(querySearch);
+  }, [querySearch, search]);
+
+  useEffect(() => {
+    if (!id || (mode !== 'edit' && mode !== 'delete')) {
+      setRouteItem(null);
+      return;
+    }
+    setRouteItemLoading(true);
+    api.get(`${config.endpoint}/${id}`)
+      .then((res) => {
+        setRouteItem(res.data as Record<string, unknown>);
+      })
+      .catch((err: unknown) => {
+        setRouteItem(null);
+        setError(err);
+      })
+      .finally(() => setRouteItemLoading(false));
+  }, [config.endpoint, id, mode]);
+
+  if (!user) return <Navigate to='/login' replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (!hasValidEntity) return <Navigate to='/departments' replace />;
 
   const showSuccess = (text: string) => setSnackbar({ open:true, text, severity:'success' });
   const showError = (err: unknown) => { setError(err); setSnackbar({ open:true, text:'Operation failed', severity:'error' }); };
+  const basePath = `/${entity}`;
+  const closeActionRoute = () => navigate(`${basePath}${location.search}`, { replace: true });
+  const actionItem = routeItem;
+  const actionItemId = actionItem?.id ? String(actionItem.id) : id;
 
   const onCreate = async (values: Record<string, unknown>) => {
-    try { await api.post(config.endpoint, values); await reload(); setCreateOpen(false); showSuccess('Created'); }
+    try {
+      await api.post(config.endpoint, values);
+      await reload();
+      closeActionRoute();
+      showSuccess('Created');
+    }
     catch (err) { showError(err); }
   };
   const onUpdate = async (values: Record<string, unknown>) => {
-    if (!editItem?.id) return;
-    try { await api.put(`${config.endpoint}/${String(editItem.id)}`, values); setEditItem(null); await reload(); showSuccess('Updated'); }
+    if (!actionItemId) return;
+    try {
+      await api.put(`${config.endpoint}/${actionItemId}`, values);
+      closeActionRoute();
+      await reload();
+      showSuccess('Updated');
+    }
     catch (err) { showError(err); }
   };
   const onDelete = async () => {
-    if (!deleteItem) return;
-    if (entity === 'users' && Number(deleteItem.id) === user.id) { showError(new Error('Cannot delete self')); setDeleteItem(null); return; }
-    try { await api.delete(`${config.endpoint}/${String(deleteItem.id)}`); setDeleteItem(null); await reload(); showSuccess('Deleted'); }
-    catch (err) { showError(err); setDeleteItem(null); }
+    if (!actionItemId) return;
+    if (entity === 'users' && Number(actionItemId) === user.id) { showError(new Error('Cannot delete self')); closeActionRoute(); return; }
+    try {
+      await api.delete(`${config.endpoint}/${actionItemId}`);
+      closeActionRoute();
+      await reload();
+      showSuccess('Deleted');
+    } catch (err) {
+      showError(err);
+      closeActionRoute();
+    }
   };
 
   const pageCount = Math.max(Math.ceil(total / limit), 1);
@@ -98,7 +169,7 @@ export function EntityListPage() {
             <Typography variant='h4' sx={{ fontWeight:700, color:'#1e293b' }}>{config.label}</Typography>
             <Typography color='text.secondary' variant="body2">Total: {total} records</Typography>
           </Box>
-          <Button variant='contained' startIcon={<AddIcon/>} disableElevation onClick={() => setCreateOpen(true)}>
+          <Button variant='contained' startIcon={<AddIcon/>} disableElevation onClick={() => navigate(`/${entity}/new${location.search}`)}>
             Add
           </Button>
         </Box>
@@ -130,9 +201,9 @@ export function EntityListPage() {
                   <TableRow key={String(item.id)} hover>
                     {columns.map(key => <TableCell key={key}><CellValue col={key} value={item[key]}/></TableCell>)}
                     <TableCell align='right' sx={{ whiteSpace:'nowrap' }}>
-                      <Tooltip title='View'><IconButton component={Link} to={`/entities/${entity}/${String(item.id)}`} size='small'><VisibilityOutlinedIcon fontSize='small'/></IconButton></Tooltip>
-                      <Tooltip title='Edit'><IconButton size='small' onClick={() => setEditItem(item)}><EditOutlinedIcon fontSize='small'/></IconButton></Tooltip>
-                      <Tooltip title='Delete'><IconButton size='small' color='error' onClick={() => setDeleteItem(item)}><DeleteOutlineIcon fontSize='small'/></IconButton></Tooltip>
+                      <Tooltip title='View'><IconButton component={Link} to={`/${entity}/${String(item.id)}${location.search}`} state={{ from: `${basePath}${location.search}` }} size='small'><VisibilityOutlinedIcon fontSize='small'/></IconButton></Tooltip>
+                      <Tooltip title='Edit'><IconButton size='small' onClick={() => navigate(`/${entity}/${String(item.id)}/edit${location.search}`)}><EditOutlinedIcon fontSize='small'/></IconButton></Tooltip>
+                      <Tooltip title='Delete'><IconButton size='small' color='error' onClick={() => navigate(`/${entity}/${String(item.id)}/delete${location.search}`)}><DeleteOutlineIcon fontSize='small'/></IconButton></Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -151,10 +222,10 @@ export function EntityListPage() {
         </Box>
       </Stack>
 
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={mode === 'new'} onClose={closeActionRoute} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <Typography variant="h6" sx={{ fontWeight:600 }}>Add {config.label.slice(0,-1)}</Typography>
-          <IconButton size="small" onClick={() => setCreateOpen(false)}><CloseIcon fontSize="small"/></IconButton>
+          <IconButton size="small" onClick={closeActionRoute}><CloseIcon fontSize="small"/></IconButton>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt:1 }}>
@@ -163,26 +234,30 @@ export function EntityListPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(editItem)} onClose={() => setEditItem(null)} maxWidth="sm" fullWidth>
+      <Dialog open={mode === 'edit'} onClose={closeActionRoute} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <Typography variant="h6" sx={{ fontWeight:600 }}>Edit {config.label.slice(0,-1)}</Typography>
-          <IconButton size="small" onClick={() => setEditItem(null)}><CloseIcon fontSize="small"/></IconButton>
+          <IconButton size="small" onClick={closeActionRoute}><CloseIcon fontSize="small"/></IconButton>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt:1 }}>
-            <EntityForm key={`edit-${entity}-${String(editItem?.id)}`} config={config} initial={editItem ?? undefined} onSubmit={onUpdate} submitLabel='Save changes'/>
+            {routeItemLoading ? <Typography>Loading...</Typography> : null}
+            {!routeItemLoading && !actionItem ? <Typography color="text.secondary">Record not found.</Typography> : null}
+            {!routeItemLoading && actionItem ? (
+              <EntityForm key={`edit-${entity}-${actionItemId ?? 'missing'}`} config={config} initial={actionItem ?? undefined} onSubmit={onUpdate} submitLabel='Save changes'/>
+            ) : null}
           </Box>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(deleteItem)} onClose={() => setDeleteItem(null)} maxWidth="xs" fullWidth>
+      <Dialog open={mode === 'delete'} onClose={closeActionRoute} maxWidth="xs" fullWidth>
         <DialogTitle>Delete {config.label.slice(0,-1)}?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">
-            Record #{String(deleteItem?.id)} will be permanently deleted.
+            Record #{String(actionItemId ?? '—')} will be permanently deleted.
           </Typography>
           <Box sx={{ display:'flex', gap:1, mt:2, justifyContent:'flex-end' }}>
-            <Button variant="outlined" onClick={() => setDeleteItem(null)}>Cancel</Button>
+            <Button variant="outlined" onClick={closeActionRoute}>Cancel</Button>
             <Button variant="contained" color="error" disableElevation onClick={onDelete}>Delete</Button>
           </Box>
         </DialogContent>

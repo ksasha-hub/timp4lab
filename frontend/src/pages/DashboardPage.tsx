@@ -52,7 +52,7 @@ export function DashboardPage() {
             <Card
               key={s.key}
               component={RouterLink}
-              to={`/entities/${s.key}`}
+              to={`/${s.key}`}
               sx={{
                 textDecoration: 'none',
                 transition: 'transform 0.15s, box-shadow 0.15s',
