@@ -28,7 +28,7 @@ export function getApiError(error: unknown): string {
     if (status === 404) return 'Not found';
     if (status === 409) return 'Conflict';
     if (status === 429) return 'Too many requests';
-    if (status && status >= 500) return 'Server error';
+    if (status === 500) return 'Server error';
   }
 
   return 'Unknown API error';
