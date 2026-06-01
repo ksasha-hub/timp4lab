@@ -21,6 +21,9 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+const reservedUsernames = new Set(env.reservedUsernames);
+const isReservedUsername = (username: string) => reservedUsernames.has(username.trim().toLowerCase());
+
 const authSchema = z.object({
   username: z.string().min(3).max(64),
   email: z.email(),
@@ -53,6 +56,9 @@ const issueTokens = async (user: { id: number; role: Role }, res: Response) => {
 router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const parsed = authSchema.parse(req.body);
+    if (isReservedUsername(parsed.username)) {
+      throw new ApiError(422, 'Username is reserved');
+    }
 
     if (!isStrongPassword(parsed.password)) {
       throw new ApiError(422, 'Password must contain upper/lower latin letters, number and special char');
@@ -74,7 +80,6 @@ router.post('/register', authLimiter, async (req, res, next) => {
       throw new ApiError(409, 'Phone already exists');
     }
 
-    const usersCount = await prisma.user.count();
     const passwordHash = await bcrypt.hash(parsed.password, 12);
     const user = await prisma.user.create({
       data: {
@@ -82,7 +87,7 @@ router.post('/register', authLimiter, async (req, res, next) => {
         email: parsed.email,
         phone: parsed.phone,
         passwordHash,
-        role: usersCount === 0 ? Role.ADMIN : Role.USER
+        role: Role.USER
       }
     });
 

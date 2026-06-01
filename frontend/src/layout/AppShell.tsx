@@ -70,7 +70,7 @@ export function AppShell({ activeEntity, children }: {
             <ListItemButton
               key={entry.key}
               component={RouterLink}
-              to={`/entities/${entry.key}`}
+              to={`/${entry.key}`}
               selected={entry.key === activeEntity}
             >
               <ListItemIcon sx={{ minWidth: 36, color: entry.key === activeEntity ? '#2563eb' : '#64748b' }}>
