@@ -21,7 +21,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
-const reservedUsernames = new Set(['admin', 'root', 'system']);
+const reservedUsernames = new Set(env.reservedUsernames);
 const isReservedUsername = (username: string) => reservedUsernames.has(username.trim().toLowerCase());
 
 const authSchema = z.object({

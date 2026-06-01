@@ -24,6 +24,10 @@ export const env = {
   accessSecret: process.env.JWT_ACCESS_SECRET as string,
   refreshSecret: process.env.JWT_REFRESH_SECRET as string,
   claimAdminSecret: process.env.CLAIM_ADMIN_SECRET as string,
+  reservedUsernames: (process.env.RESERVED_USERNAMES ?? 'admin,root,system')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean),
   refreshCookieName: process.env.REFRESH_COOKIE_NAME ?? 'refreshToken',
   accessTtl: process.env.ACCESS_TOKEN_TTL ?? '15m',
   refreshTtl: process.env.REFRESH_TOKEN_TTL ?? '7d'

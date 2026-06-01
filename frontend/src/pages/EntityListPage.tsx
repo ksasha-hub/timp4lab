@@ -33,6 +33,9 @@ const statusBg: Record<string, string> = {
   PLANNED:'#eff6ff', IN_PROGRESS:'#fffbeb', DONE:'#f0fdf4',
   ADMIN:'#faf5ff', USER:'#f8fafc',
 };
+const SEARCH_DEBOUNCE_MS = 350;
+type ListMode = 'new' | 'edit' | 'delete' | 'list';
+const itemFetchModes: ReadonlyArray<ListMode> = ['edit', 'delete'];
 
 function CellValue({ col, value }: { col: string; value: unknown }) {
   const v = String(value ?? '');
@@ -69,7 +72,8 @@ export function EntityListPage() {
     config.endpoint, page, 10, debouncedSearch
   );
 
-  const mode = useMemo(() => {
+  const currentPath = `${location.pathname}${location.search}`;
+  const mode = useMemo<ListMode>(() => {
     if (location.pathname.endsWith('/new')) return 'new';
     if (location.pathname.endsWith('/edit')) return 'edit';
     if (location.pathname.endsWith('/delete')) return 'delete';
@@ -79,7 +83,7 @@ export function EntityListPage() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearch(search.trim());
-    }, 350);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
   }, [search]);
 
@@ -99,7 +103,7 @@ export function EntityListPage() {
   }, [querySearch, search]);
 
   useEffect(() => {
-    if (!id || (mode !== 'edit' && mode !== 'delete')) {
+    if (!id || !itemFetchModes.includes(mode)) {
       setRouteItem(null);
       return;
     }
@@ -115,7 +119,7 @@ export function EntityListPage() {
       .finally(() => setRouteItemLoading(false));
   }, [config.endpoint, id, mode]);
 
-  if (!user) return <Navigate to='/login' replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (!user) return <Navigate to='/login' replace state={{ from: currentPath }} />;
   if (!hasValidEntity) return <Navigate to='/departments' replace />;
 
   const showSuccess = (text: string) => setSnackbar({ open:true, text, severity:'success' });

@@ -18,11 +18,13 @@ const toLabel = (key: string) => key
   .replace(/([A-Z])/g, ' $1')
   .replace(/^./, (c) => c.toUpperCase());
 
+const isDateField = (key: string) => key.endsWith('At') || key === 'date' || key === 'dueDate';
+
 const formatValue = (key: string, value: unknown) => {
   if (value === null || value === undefined || value === '') {
     return '—';
   }
-  if ((key.endsWith('At') || key === 'date' || key === 'dueDate') && typeof value === 'string') {
+  if (isDateField(key) && typeof value === 'string') {
     const parsed = new Date(value);
     if (!Number.isNaN(parsed.getTime())) {
       return parsed.toLocaleString();
@@ -39,13 +41,17 @@ export function EntityDetailsPage() {
   const location = useLocation();
   const config = entityConfig[entity];
   const [item, setItem] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!config || !id) return;
+    setLoading(true);
+    setError(null);
     api.get(`${config.endpoint}/${id}`)
       .then((res) => setItem(res.data as Record<string, unknown>))
-      .catch(setError);
+      .catch(setError)
+      .finally(() => setLoading(false));
   }, [config, id]);
 
   if (!user) return <Navigate to='/login' replace />;
@@ -77,7 +83,7 @@ export function EntityDetailsPage() {
                   )}
                 </Stack>
               ))}
-              {!item ? <Typography color="text.secondary">Loading...</Typography> : null}
+              {loading ? <Typography color="text.secondary">Loading...</Typography> : null}
             </Stack>
           </CardContent>
         </Card>
